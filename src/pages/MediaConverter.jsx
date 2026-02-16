@@ -7,10 +7,8 @@ import FileInfo from '../components/FileInfo';
 import ProgressBar from '../components/ProgressBar';
 import Button from '../components/Button';
 import { formatSize } from '../utils/formatSize';
-import { loadFFmpeg, mountFile, unmountFile, getMediaDuration, convertMedia } from '../tools/media-converter/ffmpeg-worker';
+import { loadFFmpeg, mountFile, unmountFile, getMediaDuration, convertMedia, VIDEO_FORMATS, AUDIO_FORMATS } from '../tools/media-converter';
 
-const VIDEO_FORMATS = ['mp4', 'm4v', 'mp4v', '3gp', '3g2', 'avi', 'mov', 'wmv', 'mkv', 'flv', 'ogv', 'webm', 'h264', '264', 'hevc', '265'];
-const AUDIO_FORMATS = ['mp3', 'wav', 'ogg', 'aac', 'wma', 'flac', 'm4a'];
 const ALL_EXTENSIONS = [...VIDEO_FORMATS, ...AUDIO_FORMATS];
 
 function getExtension(filename) {

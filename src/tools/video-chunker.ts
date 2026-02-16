@@ -1,53 +1,24 @@
-import { FFmpeg } from '@ffmpeg/ffmpeg';
-import { toBlobURL } from '@ffmpeg/util';
+import type { FFmpeg, LogCallback } from './ffmpeg';
+import { parseTimeToSeconds } from './ffmpeg';
 
-let ffmpeg = null;
+export { loadFFmpeg, mountFile, unmountFile } from './ffmpeg';
 
-const MOUNT_DIR = '/work';
-
-export async function loadFFmpeg() {
-  if (ffmpeg && ffmpeg.loaded) return ffmpeg;
-
-  ffmpeg = new FFmpeg();
-
-  ffmpeg.on('log', ({ message }) => {
-    console.log('[ffmpeg]', message);
-  });
-
-  const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm';
-
-  await ffmpeg.load({
-    coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
-    wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
-  });
-
-  return ffmpeg;
+export interface ChunkProgress {
+  current: number;
+  total: number;
+  message: string;
+  percent: number;
 }
 
-/**
- * Mount the source file using WORKERFS so FFmpeg can read it on-demand
- * without loading the entire file into WASM memory. This is critical
- * for multi-GB files.
- */
-export function mountFile(ffmpeg, file) {
-  // Create mount point
-  ffmpeg.createDir(MOUNT_DIR);
-  ffmpeg.mount('WORKERFS', { files: [file] }, MOUNT_DIR);
-  return `${MOUNT_DIR}/${file.name}`;
+export interface Chunk {
+  name: string;
+  blob: Blob;
+  size: number;
 }
 
-export function unmountFile(ffmpeg) {
-  try {
-    ffmpeg.unmount(MOUNT_DIR);
-    ffmpeg.deleteDir(MOUNT_DIR);
-  } catch {
-    // ignore cleanup errors
-  }
-}
-
-export async function getVideoDuration(ffmpeg, inputPath) {
+export async function getVideoDuration(ffmpeg: FFmpeg, inputPath: string): Promise<number> {
   let durationStr = '';
-  const logHandler = ({ message }) => {
+  const logHandler: LogCallback = ({ message }) => {
     const match = message.match(/Duration:\s*(\d+):(\d+):(\d+)\.(\d+)/);
     if (match) {
       durationStr = match[0];
@@ -55,40 +26,25 @@ export async function getVideoDuration(ffmpeg, inputPath) {
   };
 
   ffmpeg.on('log', logHandler);
-
-  // Run a quick probe by asking FFmpeg to process zero frames
   await ffmpeg.exec(['-i', inputPath, '-f', 'null', '-t', '0', '-']);
-
   ffmpeg.off('log', logHandler);
 
   if (!durationStr) {
     throw new Error('Could not determine video duration.');
   }
 
-  const match = durationStr.match(/(\d+):(\d+):(\d+)\.(\d+)/);
-  const hours = parseInt(match[1], 10);
-  const minutes = parseInt(match[2], 10);
-  const seconds = parseInt(match[3], 10);
-  const centiseconds = parseInt(match[4], 10);
-
-  return hours * 3600 + minutes * 60 + seconds + centiseconds / 100;
+  return parseTimeToSeconds(durationStr.replace('Duration: ', ''));
 }
 
-/**
- * Parse a time= timestamp from FFmpeg log output into seconds.
- */
-function parseTimeToSeconds(timeStr) {
-  const match = timeStr.match(/(\d+):(\d+):(\d+)\.(\d+)/);
-  if (!match) return 0;
-  return (
-    parseInt(match[1], 10) * 3600 +
-    parseInt(match[2], 10) * 60 +
-    parseInt(match[3], 10) +
-    parseInt(match[4], 10) / 100
-  );
-}
-
-export async function splitVideo(ffmpeg, inputPath, fileName, fileSize, duration, maxChunkBytes, onProgress) {
+export async function splitVideo(
+  ffmpeg: FFmpeg,
+  inputPath: string,
+  fileName: string,
+  fileSize: number,
+  duration: number,
+  maxChunkBytes: number,
+  onProgress: (info: ChunkProgress) => void,
+): Promise<Chunk[]> {
   const avgBitrate = fileSize / duration; // bytes per second
   const estimatedChunkDuration = (maxChunkBytes * 0.95) / avgBitrate;
   const estimatedTotalChunks = Math.ceil(duration / estimatedChunkDuration);
@@ -98,7 +54,7 @@ export async function splitVideo(ffmpeg, inputPath, fileName, fileSize, duration
     ? fileName.substring(0, fileName.lastIndexOf('.'))
     : fileName;
 
-  const chunks = [];
+  const chunks: Chunk[] = [];
   let currentTime = 0;
   let chunkIndex = 0;
 
@@ -115,7 +71,7 @@ export async function splitVideo(ffmpeg, inputPath, fileName, fileSize, duration
 
     // Track the last time= value FFmpeg reports to know where this chunk actually ended
     let lastTime = 0;
-    const timeHandler = ({ message }) => {
+    const timeHandler: LogCallback = ({ message }) => {
       const match = message.match(/time=\s*(\d+:\d+:\d+\.\d+)/);
       if (match) {
         lastTime = parseTimeToSeconds(match[1]);
@@ -137,8 +93,8 @@ export async function splitVideo(ffmpeg, inputPath, fileName, fileSize, duration
 
     ffmpeg.off('log', timeHandler);
 
-    const data = await ffmpeg.readFile(chunkName);
-    const blob = new Blob([data.buffer], { type: 'video/mp4' });
+    const data = await ffmpeg.readFile(chunkName) as Uint8Array;
+    const blob = new Blob([data.buffer as ArrayBuffer], { type: 'video/mp4' });
     chunks.push({ name: chunkName, blob, size: blob.size });
 
     // Clean up this chunk from virtual FS to save memory

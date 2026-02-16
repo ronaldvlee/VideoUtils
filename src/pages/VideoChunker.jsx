@@ -7,7 +7,7 @@ import FileInfo from '../components/FileInfo';
 import ProgressBar from '../components/ProgressBar';
 import Button from '../components/Button';
 import { formatSize } from '../utils/formatSize';
-import { loadFFmpeg, mountFile, unmountFile, getVideoDuration, splitVideo } from '../tools/video-chunker/ffmpeg-worker';
+import { loadFFmpeg, mountFile, unmountFile, getVideoDuration, splitVideo } from '../tools/video-chunker';
 
 const Settings = styled.div`
   margin-top: 1.5rem;
