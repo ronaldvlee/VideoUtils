@@ -19,6 +19,7 @@ export default defineConfig({
       input: {
         main: resolve(__dirname, 'index.html'),
         'video-chunker': resolve(__dirname, 'tools/video-chunker/index.html'),
+        'media-converter': resolve(__dirname, 'tools/media-converter/index.html'),
       },
     },
   },
