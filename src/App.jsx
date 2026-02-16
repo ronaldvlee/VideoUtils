@@ -1,9 +1,13 @@
+import { useEffect } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import Landing from './pages/Landing';
 import VideoChunker from './pages/VideoChunker';
 import MediaConverter from './pages/MediaConverter';
+import { loadFFmpeg } from './tools/ffmpeg';
 
 export default function App() {
+  useEffect(() => { loadFFmpeg(); }, []);
+
   return (
     <Routes>
       <Route path="/" element={<Landing />} />
