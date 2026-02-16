@@ -242,40 +242,38 @@ export default function VideoChunker() {
 
       {file && <FileInfo file={file} />}
 
-      {file && (
-        <Settings>
-          <Label>Max chunk size</Label>
-          <SizeControls>
-            <SliderRoot
-              value={[chunkSizeMB]}
-              onValueChange={([v]) => setChunkSizeMB(v)}
+      <Settings>
+        <Label>Max chunk size</Label>
+        <SizeControls>
+          <SliderRoot
+            value={[chunkSizeMB]}
+            onValueChange={([v]) => setChunkSizeMB(v)}
+            min={10}
+            max={2000}
+            step={10}
+          >
+            <SliderTrack>
+              <SliderRange />
+            </SliderTrack>
+            <SliderThumb />
+          </SliderRoot>
+          <SizeInputGroup>
+            <NumberInput
+              type="number"
               min={10}
               max={2000}
               step={10}
-            >
-              <SliderTrack>
-                <SliderRange />
-              </SliderTrack>
-              <SliderThumb />
-            </SliderRoot>
-            <SizeInputGroup>
-              <NumberInput
-                type="number"
-                min={10}
-                max={2000}
-                step={10}
-                value={chunkSizeMB}
-                onChange={(e) => setChunkSizeMB(Number(e.target.value))}
-              />
-              <SizeUnit>MB</SizeUnit>
-            </SizeInputGroup>
-          </SizeControls>
-          <Estimate>{getEstimate()}</Estimate>
-          <Button onClick={handleSplit} disabled={processing}>
-            Split Video
-          </Button>
-        </Settings>
-      )}
+              value={chunkSizeMB}
+              onChange={(e) => setChunkSizeMB(Number(e.target.value))}
+            />
+            <SizeUnit>MB</SizeUnit>
+          </SizeInputGroup>
+        </SizeControls>
+        <Estimate>{getEstimate()}</Estimate>
+        <Button onClick={handleSplit} disabled={!file || processing}>
+          Split Video
+        </Button>
+      </Settings>
 
       {(processing || progress.text) && (
         <ProgressBar value={progress.value} text={progress.text} title="Processing" />

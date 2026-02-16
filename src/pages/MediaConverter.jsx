@@ -132,13 +132,13 @@ function downloadBlob(blob, name) {
 
 export default function MediaConverter() {
   const [file, setFile] = useState(null);
-  const [targetFormat, setTargetFormat] = useState('');
+  const [targetFormat, setTargetFormat] = useState('mp4');
   const [processing, setProcessing] = useState(false);
   const [progress, setProgress] = useState({ value: 0, text: '' });
   const [result, setResult] = useState(null); // { blob, name }
 
   const formatOptions = useMemo(() => {
-    if (!file) return { video: [], audio: [], isVideo: false };
+    if (!file) return { video: VIDEO_FORMATS, audio: AUDIO_FORMATS, isVideo: true };
     const ext = getExtension(file.name);
     const isVideo = isVideoFile(file);
 
@@ -225,60 +225,58 @@ export default function MediaConverter() {
 
       {file && <FileInfo file={file} />}
 
-      {file && (
-        <Settings>
-          <Label>Convert to</Label>
-          <Select.Root value={targetFormat} onValueChange={setTargetFormat}>
-            <SelectTrigger>
-              <Select.Value />
-              <Select.Icon>
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M2 4l4 4 4-4" />
-                </svg>
-              </Select.Icon>
-            </SelectTrigger>
-            <Select.Portal>
-              <SelectContent position="popper" sideOffset={4}>
-                <Select.Viewport>
-                  {formatOptions.isVideo && (
-                    <>
-                      <SelectGroup>
-                        <SelectLabel>Video</SelectLabel>
-                        {formatOptions.video.map((fmt) => (
-                          <SelectItem key={fmt} value={fmt}>
-                            <Select.ItemText>{fmt.toUpperCase()}</Select.ItemText>
-                          </SelectItem>
-                        ))}
-                      </SelectGroup>
-                      <SelectSeparator />
-                      <SelectGroup>
-                        <SelectLabel>Audio (extract audio track)</SelectLabel>
-                        {formatOptions.audio.map((fmt) => (
-                          <SelectItem key={fmt} value={fmt}>
-                            <Select.ItemText>{fmt.toUpperCase()}</Select.ItemText>
-                          </SelectItem>
-                        ))}
-                      </SelectGroup>
-                    </>
-                  )}
-                  {!formatOptions.isVideo && (
+      <Settings>
+        <Label>Convert to</Label>
+        <Select.Root value={targetFormat} onValueChange={setTargetFormat}>
+          <SelectTrigger>
+            <Select.Value />
+            <Select.Icon>
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M2 4l4 4 4-4" />
+              </svg>
+            </Select.Icon>
+          </SelectTrigger>
+          <Select.Portal>
+            <SelectContent position="popper" sideOffset={4}>
+              <Select.Viewport>
+                {formatOptions.isVideo && (
+                  <>
                     <SelectGroup>
+                      <SelectLabel>Video</SelectLabel>
+                      {formatOptions.video.map((fmt) => (
+                        <SelectItem key={fmt} value={fmt}>
+                          <Select.ItemText>{fmt.toUpperCase()}</Select.ItemText>
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                    <SelectSeparator />
+                    <SelectGroup>
+                      <SelectLabel>Audio (extract audio track)</SelectLabel>
                       {formatOptions.audio.map((fmt) => (
                         <SelectItem key={fmt} value={fmt}>
                           <Select.ItemText>{fmt.toUpperCase()}</Select.ItemText>
                         </SelectItem>
                       ))}
                     </SelectGroup>
-                  )}
-                </Select.Viewport>
-              </SelectContent>
-            </Select.Portal>
-          </Select.Root>
-          <Button onClick={handleConvert} disabled={processing}>
-            Convert
-          </Button>
-        </Settings>
-      )}
+                  </>
+                )}
+                {!formatOptions.isVideo && (
+                  <SelectGroup>
+                    {formatOptions.audio.map((fmt) => (
+                      <SelectItem key={fmt} value={fmt}>
+                        <Select.ItemText>{fmt.toUpperCase()}</Select.ItemText>
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                )}
+              </Select.Viewport>
+            </SelectContent>
+          </Select.Portal>
+        </Select.Root>
+        <Button onClick={handleConvert} disabled={!file || processing}>
+          Convert
+        </Button>
+      </Settings>
 
       {(processing || progress.text) && (
         <ProgressBar value={progress.value} text={progress.text} title="Converting" />
