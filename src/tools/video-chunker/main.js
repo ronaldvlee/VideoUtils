@@ -1,3 +1,4 @@
+import '../../shared/style.css';
 import './style.css';
 import { loadFFmpeg, mountFile, unmountFile, getVideoDuration, splitVideo } from './ffmpeg-worker.js';
 

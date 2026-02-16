@@ -1,56 +1,3 @@
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
-:root {
-  --bg: #0f1117;
-  --surface: #1a1d27;
-  --surface-hover: #222632;
-  --border: #2e3345;
-  --text: #e4e6f0;
-  --text-dim: #8b8fa3;
-  --accent: #6c5ce7;
-  --accent-hover: #7e70ed;
-  --success: #00cec9;
-  --danger: #fd79a8;
-}
-
-body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background: var(--bg);
-  color: var(--text);
-  min-height: 100vh;
-  display: flex;
-  justify-content: center;
-  padding: 2rem 1rem;
-}
-
-.container {
-  max-width: 640px;
-  width: 100%;
-}
-
-h1 {
-  font-size: 2rem;
-  font-weight: 700;
-  margin-bottom: 0.25rem;
-}
-
-h2 {
-  font-size: 1.25rem;
-  font-weight: 600;
-  margin-bottom: 1rem;
-}
-
-.subtitle {
-  color: var(--text-dim);
-  margin-bottom: 2rem;
-}
-
 /* Drop Zone */
 .drop-zone {
   border: 2px dashed var(--border);
@@ -280,9 +227,4 @@ input[type='number']:focus {
 .chunk-download:hover {
   background: var(--accent);
   color: #fff;
-}
-
-/* Utility */
-.hidden {
-  display: none !important;
 }

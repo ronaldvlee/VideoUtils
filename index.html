@@ -3,65 +3,29 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Video Splitter for NBLM</title>
-    <link rel="stylesheet" href="/src/style.css" />
+    <title>Video Utils</title>
   </head>
   <body>
     <div class="container">
-      <h1>Video Splitter</h1>
-      <p class="subtitle">Split large videos into smaller chunks — entirely in your browser.</p>
+      <h1>Video Utils</h1>
+      <p class="subtitle">Browser-based video tools — no uploads, everything runs locally.</p>
 
-      <!-- Upload Area -->
-      <div id="drop-zone" class="drop-zone">
-        <div class="drop-zone-content">
-          <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-            <polyline points="17 8 12 3 7 8" />
-            <line x1="12" y1="3" x2="12" y2="15" />
+      <div class="tools-grid">
+        <a href="/tools/video-chunker/" class="tool-card">
+          <svg class="tool-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18" />
+            <line x1="7" y1="2" x2="7" y2="22" />
+            <line x1="17" y1="2" x2="17" y2="22" />
+            <line x1="2" y1="12" x2="22" y2="12" />
           </svg>
-          <p>Drag & drop a video file here</p>
-          <p class="drop-zone-hint">or click to browse</p>
-        </div>
-        <input type="file" id="file-input" accept="video/*" hidden />
-      </div>
-
-      <!-- File Info -->
-      <div id="file-info" class="file-info hidden">
-        <span id="file-name"></span>
-        <span id="file-size"></span>
-      </div>
-
-      <!-- Settings -->
-      <div id="settings" class="settings hidden">
-        <label for="chunk-size">Max chunk size</label>
-        <div class="size-controls">
-          <input type="range" id="chunk-slider" min="10" max="2000" value="200" step="10" />
-          <div class="size-input-group">
-            <input type="number" id="chunk-size" min="10" max="2000" value="200" step="10" />
-            <span class="size-unit">MB</span>
+          <div class="tool-details">
+            <span class="tool-name">Video Chunker</span>
+            <span class="tool-desc">Split large videos into smaller chunks by file size</span>
           </div>
-        </div>
-        <p class="estimate" id="estimate"></p>
-        <button id="split-btn" class="btn primary">Split Video</button>
-      </div>
-
-      <!-- Progress -->
-      <div id="progress-section" class="progress-section hidden">
-        <h2>Processing</h2>
-        <div class="progress-bar-container">
-          <div class="progress-bar" id="progress-bar"></div>
-        </div>
-        <p id="progress-text" class="progress-text">Initializing FFmpeg...</p>
-      </div>
-
-      <!-- Results -->
-      <div id="results-section" class="results-section hidden">
-        <h2>Chunks Ready</h2>
-        <div id="chunks-list" class="chunks-list"></div>
-        <button id="download-all-btn" class="btn secondary">Download All</button>
+        </a>
       </div>
     </div>
 
-    <script type="module" src="/src/main.js"></script>
+    <script type="module" src="/src/landing/main.js"></script>
   </body>
 </html>
