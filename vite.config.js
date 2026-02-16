@@ -1,7 +1,8 @@
 import { defineConfig } from 'vite';
-import { resolve } from 'path';
+import react from '@vitejs/plugin-react';
 
 export default defineConfig({
+  plugins: [react()],
   server: {
     headers: {
       'Cross-Origin-Opener-Policy': 'same-origin',
@@ -12,15 +13,6 @@ export default defineConfig({
     headers: {
       'Cross-Origin-Opener-Policy': 'same-origin',
       'Cross-Origin-Embedder-Policy': 'require-corp',
-    },
-  },
-  build: {
-    rollupOptions: {
-      input: {
-        main: resolve(__dirname, 'index.html'),
-        'video-chunker': resolve(__dirname, 'tools/video-chunker/index.html'),
-        'media-converter': resolve(__dirname, 'tools/media-converter/index.html'),
-      },
     },
   },
   optimizeDeps: {

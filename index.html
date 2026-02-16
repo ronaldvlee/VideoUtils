@@ -6,40 +6,7 @@
     <title>Video Utils</title>
   </head>
   <body>
-    <div class="container">
-      <h1>Video Utils</h1>
-      <p class="subtitle">Browser-based video tools — no uploads, everything runs locally.</p>
-
-      <div class="tools-grid">
-        <a href="/tools/video-chunker/" class="tool-card">
-          <svg class="tool-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18" />
-            <line x1="7" y1="2" x2="7" y2="22" />
-            <line x1="17" y1="2" x2="17" y2="22" />
-            <line x1="2" y1="12" x2="22" y2="12" />
-          </svg>
-          <div class="tool-details">
-            <span class="tool-name">Video Chunker</span>
-            <span class="tool-desc">Split large videos into smaller chunks by file size</span>
-          </div>
-        </a>
-
-        <a href="/tools/media-converter/" class="tool-card">
-          <svg class="tool-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="16 3 21 3 21 8" />
-            <line x1="4" y1="20" x2="21" y2="3" />
-            <polyline points="21 16 21 21 16 21" />
-            <line x1="15" y1="15" x2="21" y2="21" />
-            <line x1="4" y1="4" x2="9" y2="9" />
-          </svg>
-          <div class="tool-details">
-            <span class="tool-name">Media Converter</span>
-            <span class="tool-desc">Convert video and audio files between formats</span>
-          </div>
-        </a>
-      </div>
-    </div>
-
-    <script type="module" src="/src/landing/main.js"></script>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
