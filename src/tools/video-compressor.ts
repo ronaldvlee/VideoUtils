@@ -83,12 +83,12 @@ export function calculateCompression(
   duration: number,
   width: number,
   height: number,
-  targetBytes: number,
+  targetBytes: number
 ): CompressionPlan {
   // Audio budget: copy if possible, otherwise 96kbps
   const baseAudioBitrate = 96_000;
   const totalTargetBits = targetBytes * 8;
-  const availableVideoBits = totalTargetBits - (baseAudioBitrate * duration);
+  const availableVideoBits = totalTargetBits - baseAudioBitrate * duration;
 
   if (availableVideoBits <= 0) {
     throw new Error('Target size is too small even for audio alone.');
@@ -110,7 +110,7 @@ export function calculateCompression(
     for (const res of STANDARD_RESOLUTIONS) {
       if (res.height >= height) continue; // skip resolutions >= source
       const h = res.height;
-      const w = Math.round(h * aspect / 2) * 2; // ensure even
+      const w = Math.round((h * aspect) / 2) * 2; // ensure even
       const bpp = bestVideoBitrate / (w * h);
       if (bpp >= MIN_BPP) {
         bestWidth = w;
@@ -122,13 +122,13 @@ export function calculateCompression(
     if (!found) {
       // Use 144p as floor
       bestHeight = 144;
-      bestWidth = Math.round(144 * aspect / 2) * 2;
+      bestWidth = Math.round((144 * aspect) / 2) * 2;
     }
   }
 
   // Calculate minimum quality (144p floor)
   const minHeight = 144;
-  const minWidth = Math.round(minHeight * aspect / 2) * 2;
+  const minWidth = Math.round((minHeight * aspect) / 2) * 2;
   const minVideoBitrate = availableVideoBits / duration;
 
   return {
@@ -147,11 +147,11 @@ export async function compressVideo(
   inputPath: string,
   plan: CompressionPlan,
   duration: number,
-  onProgress: (info: CompressProgress) => void,
+  onProgress: (info: CompressProgress) => void
 ): Promise<Blob> {
   const videoBitrateK = Math.max(1, Math.round(plan.videoBitrate / 1000));
   const audioBitrateK = Math.round(plan.audioBitrate / 1000);
-  const needsScale = plan.newWidth !== 0; // always scale to target
+  // always scale to target
 
   const scaleFilter = `-vf`;
   const scaleValue = `scale=${plan.newWidth}:${plan.newHeight}`;
@@ -170,14 +170,21 @@ export async function compressVideo(
 
   ffmpeg.on('log', pass1LogHandler);
   await ffmpeg.exec([
-    '-i', inputPath,
-    scaleFilter, scaleValue,
-    '-c:v', 'libx264',
-    '-b:v', `${videoBitrateK}k`,
-    '-pass', '1',
-    '-passlogfile', '/tmp/ffmpeg2pass',
+    '-i',
+    inputPath,
+    scaleFilter,
+    scaleValue,
+    '-c:v',
+    'libx264',
+    '-b:v',
+    `${videoBitrateK}k`,
+    '-pass',
+    '1',
+    '-passlogfile',
+    '/tmp/ffmpeg2pass',
     '-an',
-    '-f', 'null',
+    '-f',
+    'null',
     '-',
   ]);
   ffmpeg.off('log', pass1LogHandler);
@@ -198,21 +205,29 @@ export async function compressVideo(
 
   ffmpeg.on('log', pass2LogHandler);
   await ffmpeg.exec([
-    '-i', inputPath,
-    scaleFilter, scaleValue,
-    '-c:v', 'libx264',
-    '-b:v', `${videoBitrateK}k`,
-    '-pass', '2',
-    '-passlogfile', '/tmp/ffmpeg2pass',
-    '-c:a', 'aac',
-    '-b:a', `${audioBitrateK}k`,
+    '-i',
+    inputPath,
+    scaleFilter,
+    scaleValue,
+    '-c:v',
+    'libx264',
+    '-b:v',
+    `${videoBitrateK}k`,
+    '-pass',
+    '2',
+    '-passlogfile',
+    '/tmp/ffmpeg2pass',
+    '-c:a',
+    'aac',
+    '-b:a',
+    `${audioBitrateK}k`,
     outputName,
   ]);
   ffmpeg.off('log', pass2LogHandler);
 
   onProgress({ percent: 98, message: 'Reading output file...' });
 
-  const data = await ffmpeg.readFile(outputName) as Uint8Array;
+  const data = (await ffmpeg.readFile(outputName)) as Uint8Array;
   const blob = new Blob([data.buffer as ArrayBuffer], { type: 'video/mp4' });
   await ffmpeg.deleteFile(outputName);
 

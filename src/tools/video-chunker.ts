@@ -43,7 +43,7 @@ export async function splitVideo(
   fileSize: number,
   duration: number,
   maxChunkBytes: number,
-  onProgress: (info: ChunkProgress) => void,
+  onProgress: (info: ChunkProgress) => void
 ): Promise<Chunk[]> {
   const avgBitrate = fileSize / duration; // bytes per second
   const estimatedChunkDuration = (maxChunkBytes * 0.95) / avgBitrate;
@@ -82,18 +82,24 @@ export async function splitVideo(
     // -fs enforces a hard byte-size limit: FFmpeg stops writing once
     // the output file reaches this size, regardless of VBR spikes.
     await ffmpeg.exec([
-      '-ss', String(currentTime),
-      '-i', inputPath,
-      '-t', String(estimatedChunkDuration),
-      '-fs', String(maxChunkBytes),
-      '-c', 'copy',
-      '-avoid_negative_ts', 'make_zero',
+      '-ss',
+      String(currentTime),
+      '-i',
+      inputPath,
+      '-t',
+      String(estimatedChunkDuration),
+      '-fs',
+      String(maxChunkBytes),
+      '-c',
+      'copy',
+      '-avoid_negative_ts',
+      'make_zero',
       chunkName,
     ]);
 
     ffmpeg.off('log', timeHandler);
 
-    const data = await ffmpeg.readFile(chunkName) as Uint8Array;
+    const data = (await ffmpeg.readFile(chunkName)) as Uint8Array;
     const blob = new Blob([data.buffer as ArrayBuffer], { type: 'video/mp4' });
     chunks.push({ name: chunkName, blob, size: blob.size });
 

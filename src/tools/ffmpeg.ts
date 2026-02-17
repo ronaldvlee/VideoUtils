@@ -35,7 +35,6 @@ export async function loadFFmpeg(): Promise<FFmpeg> {
  */
 export function mountFile(ffmpeg: FFmpeg, file: File): string {
   ffmpeg.createDir(MOUNT_DIR);
-  // @ts-expect-error - FFmpeg types use enum but accepts string at runtime
   ffmpeg.mount('WORKERFS', { files: [file] }, MOUNT_DIR);
   return `${MOUNT_DIR}/${file.name}`;
 }

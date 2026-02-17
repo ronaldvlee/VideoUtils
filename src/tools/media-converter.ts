@@ -3,7 +3,24 @@ import { parseTimeToSeconds } from './ffmpeg';
 
 export { loadFFmpeg, mountFile, unmountFile } from './ffmpeg';
 
-export const VIDEO_FORMATS = ['mp4', 'm4v', 'mp4v', '3gp', '3g2', 'avi', 'mov', 'wmv', 'mkv', 'flv', 'ogv', 'webm', 'h264', '264', 'hevc', '265'] as const;
+export const VIDEO_FORMATS = [
+  'mp4',
+  'm4v',
+  'mp4v',
+  '3gp',
+  '3g2',
+  'avi',
+  'mov',
+  'wmv',
+  'mkv',
+  'flv',
+  'ogv',
+  'webm',
+  'h264',
+  '264',
+  'hevc',
+  '265',
+] as const;
 export const AUDIO_FORMATS = ['mp3', 'wav', 'ogg', 'aac', 'wma', 'flac', 'm4a'] as const;
 
 export interface ConvertProgress {
@@ -12,8 +29,10 @@ export interface ConvertProgress {
 }
 
 function isVideoToAudio(inputExt: string, outputExt: string): boolean {
-  return (VIDEO_FORMATS as readonly string[]).includes(inputExt)
-    && (AUDIO_FORMATS as readonly string[]).includes(outputExt);
+  return (
+    (VIDEO_FORMATS as readonly string[]).includes(inputExt) &&
+    (AUDIO_FORMATS as readonly string[]).includes(outputExt)
+  );
 }
 
 export async function getMediaDuration(ffmpeg: FFmpeg, inputPath: string): Promise<number> {
@@ -41,7 +60,7 @@ export async function convertMedia(
   inputPath: string,
   outputFormat: string,
   duration: number,
-  onProgress: (info: ConvertProgress) => void,
+  onProgress: (info: ConvertProgress) => void
 ): Promise<Blob> {
   const inputExt = inputPath.split('.').pop()!.toLowerCase();
   const outputName = `output.${outputFormat}`;
@@ -67,7 +86,7 @@ export async function convertMedia(
   await ffmpeg.exec(args);
   ffmpeg.off('log', logHandler);
 
-  const data = await ffmpeg.readFile(outputName) as Uint8Array;
+  const data = (await ffmpeg.readFile(outputName)) as Uint8Array;
   const blob = new Blob([data.buffer as ArrayBuffer]);
   await ffmpeg.deleteFile(outputName);
 

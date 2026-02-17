@@ -7,7 +7,15 @@ import FileInfo from '../components/FileInfo';
 import ProgressBar from '../components/ProgressBar';
 import Button from '../components/Button';
 import { formatSize } from '../utils/formatSize';
-import { loadFFmpeg, mountFile, unmountFile, getVideoDuration, splitVideo, type Chunk, type ChunkProgress } from '../tools/video-chunker';
+import {
+  loadFFmpeg,
+  mountFile,
+  unmountFile,
+  getVideoDuration,
+  splitVideo,
+  type Chunk,
+  type ChunkProgress,
+} from '../tools/video-chunker';
 import type { FFmpeg } from '../tools/ffmpeg';
 
 const Settings = styled.div`
@@ -146,7 +154,9 @@ const ChunkDownload = styled.button`
   border-radius: 6px;
   cursor: pointer;
   font-size: 0.85rem;
-  transition: background 0.2s, color 0.2s;
+  transition:
+    background 0.2s,
+    color 0.2s;
 
   &:hover {
     background: ${({ theme }) => theme.accent};
@@ -213,17 +223,30 @@ export default function VideoChunker() {
       setProgress({ value: 10, text: 'Analyzing video duration...' });
       const duration = await getVideoDuration(ffmpeg, inputPath);
 
-      const result = await splitVideo(ffmpeg, inputPath, file.name, file.size, duration, maxBytes, (info: ChunkProgress) => {
-        setProgress({ value: 15 + (info.percent * 0.85), text: info.message });
-      });
+      const result = await splitVideo(
+        ffmpeg,
+        inputPath,
+        file.name,
+        file.size,
+        duration,
+        maxBytes,
+        (info: ChunkProgress) => {
+          setProgress({ value: 15 + info.percent * 0.85, text: info.message });
+        }
+      );
 
       unmountFile(ffmpeg);
       setChunks(result);
       setShowResults(true);
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
-      setProgress({ value: progress.value, text: `Error: ${err.message}` });
-      try { if (ffmpeg) unmountFile(ffmpeg); } catch { /* ignore */ }
+      const message = err instanceof Error ? err.message : String(err);
+      setProgress({ value: progress.value, text: `Error: ${message}` });
+      try {
+        if (ffmpeg) unmountFile(ffmpeg);
+      } catch {
+        /* ignore */
+      }
     } finally {
       setProcessing(false);
     }
@@ -296,8 +319,10 @@ export default function VideoChunker() {
               </ChunkItem>
             ))}
           </ChunksList>
-          {/* @ts-ignore */}
-          <Button $variant="secondary" onClick={() => chunks.forEach((c) => downloadBlob(c.blob, c.name))}>
+          <Button
+            $variant="secondary"
+            onClick={() => chunks.forEach((c) => downloadBlob(c.blob, c.name))}
+          >
             Download All
           </Button>
         </ResultsSection>

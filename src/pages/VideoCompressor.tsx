@@ -15,7 +15,7 @@ import {
   compressVideo,
   type VideoInfo,
   type CompressionPlan,
-  type CompressProgress
+  type CompressProgress,
 } from '../tools/video-compressor';
 import type { FFmpeg } from '../tools/ffmpeg';
 
@@ -44,9 +44,9 @@ const PresetRow = styled.div`
 `;
 
 const PresetButton = styled.button<{ $active?: boolean }>`
-  background: ${({ theme, $active }) => $active ? theme.accent : theme.surface};
-  color: ${({ theme, $active }) => $active ? '#fff' : theme.text};
-  border: 1px solid ${({ theme, $active }) => $active ? theme.accent : theme.border};
+  background: ${({ theme, $active }) => ($active ? theme.accent : theme.surface)};
+  color: ${({ theme, $active }) => ($active ? '#fff' : theme.text)};
+  border: 1px solid ${({ theme, $active }) => ($active ? theme.accent : theme.border)};
   border-radius: 6px;
   padding: 0.4rem 0.75rem;
   font-size: 0.85rem;
@@ -196,10 +196,15 @@ export default function VideoCompressor() {
         setPlan(null);
       }
       setProgress({ value: 0, text: '' });
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
-      setProgress({ value: 0, text: `Error: ${err.message}` });
-      try { if (ffmpeg) unmountFile(ffmpeg); } catch { /* ignore */ }
+      const message = err instanceof Error ? err.message : String(err);
+      setProgress({ value: 0, text: `Error: ${message}` });
+      try {
+        if (ffmpeg) unmountFile(ffmpeg);
+      } catch {
+        /* ignore */
+      }
     } finally {
       setProbing(false);
     }
@@ -211,7 +216,13 @@ export default function VideoCompressor() {
     const bytes = mb * 1024 * 1024;
     if (videoInfo && file) {
       try {
-        const p = calculateCompression(file.size, videoInfo.duration, videoInfo.width, videoInfo.height, bytes);
+        const p = calculateCompression(
+          file.size,
+          videoInfo.duration,
+          videoInfo.width,
+          videoInfo.height,
+          bytes
+        );
         setPlan(p);
       } catch {
         setPlan(null);
@@ -233,9 +244,15 @@ export default function VideoCompressor() {
       setProgress({ value: 2, text: 'Mounting file...' });
       const inputPath = mountFile(ffmpeg, file);
 
-      const blob = await compressVideo(ffmpeg, inputPath, plan, videoInfo.duration, (info: CompressProgress) => {
-        setProgress({ value: 2 + (info.percent * 0.96), text: info.message });
-      });
+      const blob = await compressVideo(
+        ffmpeg,
+        inputPath,
+        plan,
+        videoInfo.duration,
+        (info: CompressProgress) => {
+          setProgress({ value: 2 + info.percent * 0.96, text: info.message });
+        }
+      );
 
       unmountFile(ffmpeg);
 
@@ -246,10 +263,15 @@ export default function VideoCompressor() {
 
       setProgress({ value: 100, text: 'Done!' });
       setResult({ blob, name: resultName });
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
-      setProgress({ value: progress.value, text: `Error: ${err.message}` });
-      try { if (ffmpeg) unmountFile(ffmpeg); } catch { /* ignore */ }
+      const message = err instanceof Error ? err.message : String(err);
+      setProgress({ value: progress.value, text: `Error: ${message}` });
+      try {
+        if (ffmpeg) unmountFile(ffmpeg);
+      } catch {
+        /* ignore */
+      }
     } finally {
       setProcessing(false);
     }
@@ -265,7 +287,10 @@ export default function VideoCompressor() {
       <DropZone
         accept="video/*,.mkv,.flv,.ogv,.webm,.h264,.264,.hevc,.265"
         label="Drag & drop a video file here"
-        validate={(f: File) => f.type.startsWith('video/') || /\.(mp4|mkv|avi|mov|wmv|flv|webm|ogv|3gp|m4v)$/i.test(f.name)}
+        validate={(f: File) =>
+          f.type.startsWith('video/') ||
+          /\.(mp4|mkv|avi|mov|wmv|flv|webm|ogv|3gp|m4v)$/i.test(f.name)
+        }
         onFile={handleFile}
       />
 
@@ -300,7 +325,9 @@ export default function VideoCompressor() {
         {tooSmall && (
           <InfoCard>
             <InfoRow>
-              <InfoLabel>File is already smaller than the target size ({formatSize(targetBytes)})</InfoLabel>
+              <InfoLabel>
+                File is already smaller than the target size ({formatSize(targetBytes)})
+              </InfoLabel>
             </InfoRow>
           </InfoCard>
         )}
@@ -313,7 +340,9 @@ export default function VideoCompressor() {
             </InfoRow>
             <InfoRow>
               <InfoLabel>Current resolution</InfoLabel>
-              <InfoValue>{videoInfo.width} x {videoInfo.height}</InfoValue>
+              <InfoValue>
+                {videoInfo.width} x {videoInfo.height}
+              </InfoValue>
             </InfoRow>
             <InfoRow>
               <InfoLabel>Current size</InfoLabel>
@@ -322,7 +351,9 @@ export default function VideoCompressor() {
             <InfoDivider />
             <InfoRow>
               <InfoLabel>Output resolution</InfoLabel>
-              <InfoValue>{plan.newWidth} x {plan.newHeight}</InfoValue>
+              <InfoValue>
+                {plan.newWidth} x {plan.newHeight}
+              </InfoValue>
             </InfoRow>
             <InfoRow>
               <InfoLabel>Video bitrate</InfoLabel>
@@ -335,12 +366,17 @@ export default function VideoCompressor() {
             <InfoDivider />
             <InfoRow>
               <InfoLabel>Quality floor (144p)</InfoLabel>
-              <InfoValue>{plan.minWidth} x {plan.minHeight} @ {Math.round(plan.minVideoBitrate / 1000)} kbps</InfoValue>
+              <InfoValue>
+                {plan.minWidth} x {plan.minHeight} @ {Math.round(plan.minVideoBitrate / 1000)} kbps
+              </InfoValue>
             </InfoRow>
           </InfoCard>
         )}
 
-        <Button onClick={handleCompress} disabled={!file || !plan || processing || probing || tooSmall}>
+        <Button
+          onClick={handleCompress}
+          disabled={!file || !plan || processing || probing || tooSmall}
+        >
           Compress
         </Button>
       </Settings>
@@ -355,13 +391,11 @@ export default function VideoCompressor() {
           <ResultInfo>
             <ResultName>{result.name}</ResultName>
             <ResultSize>
-              {formatSize(result.blob.size)}
-              {' '}({Math.round((1 - result.blob.size / (file?.size || 1)) * 100)}% smaller)
+              {formatSize(result.blob.size)} (
+              {Math.round((1 - result.blob.size / (file?.size || 1)) * 100)}% smaller)
             </ResultSize>
           </ResultInfo>
-          <Button onClick={() => downloadBlob(result.blob, result.name)}>
-            Download
-          </Button>
+          <Button onClick={() => downloadBlob(result.blob, result.name)}>Download</Button>
         </ResultSection>
       )}
     </Layout>

@@ -7,10 +7,19 @@ import FileInfo from '../components/FileInfo';
 import ProgressBar from '../components/ProgressBar';
 import Button from '../components/Button';
 import { formatSize } from '../utils/formatSize';
-import { loadFFmpeg, mountFile, unmountFile, getMediaDuration, convertMedia, VIDEO_FORMATS, AUDIO_FORMATS, type ConvertProgress } from '../tools/media-converter';
+import {
+  loadFFmpeg,
+  mountFile,
+  unmountFile,
+  getMediaDuration,
+  convertMedia,
+  VIDEO_FORMATS,
+  AUDIO_FORMATS,
+  type ConvertProgress,
+} from '../tools/media-converter';
 import type { FFmpeg } from '../tools/ffmpeg';
 
-const ALL_EXTENSIONS = [...VIDEO_FORMATS, ...AUDIO_FORMATS];
+const ALL_EXTENSIONS = [...VIDEO_FORMATS, ...AUDIO_FORMATS] as const;
 
 function getExtension(filename: string): string {
   const dot = filename.lastIndexOf('.');
@@ -19,12 +28,12 @@ function getExtension(filename: string): string {
 
 function isAcceptedFile(file: File): boolean {
   if (file.type.startsWith('video/') || file.type.startsWith('audio/')) return true;
-  return ALL_EXTENSIONS.includes(getExtension(file.name) as any);
+  return ALL_EXTENSIONS.includes(getExtension(file.name));
 }
 
 function isVideoFile(file: File): boolean {
   if (file.type.startsWith('video/')) return true;
-  return VIDEO_FORMATS.includes(getExtension(file.name) as any);
+  return VIDEO_FORMATS.includes(getExtension(file.name));
 }
 
 const Settings = styled.div`
@@ -201,9 +210,15 @@ export default function MediaConverter() {
       setProgress({ value: 10, text: 'Analyzing media duration...' });
       const duration = await getMediaDuration(ffmpeg, inputPath);
 
-      const blob = await convertMedia(ffmpeg, inputPath, targetFormat, duration, (info: ConvertProgress) => {
-        setProgress({ value: 10 + (info.percent * 0.9), text: info.message });
-      });
+      const blob = await convertMedia(
+        ffmpeg,
+        inputPath,
+        targetFormat,
+        duration,
+        (info: ConvertProgress) => {
+          setProgress({ value: 10 + info.percent * 0.9, text: info.message });
+        }
+      );
 
       unmountFile(ffmpeg);
 
@@ -214,10 +229,15 @@ export default function MediaConverter() {
 
       setProgress({ value: 100, text: 'Done!' });
       setResult({ blob, name: resultName });
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
-      setProgress({ value: progress.value, text: `Error: ${err.message}` });
-      try { if (ffmpeg) unmountFile(ffmpeg); } catch { /* ignore */ }
+      const message = err instanceof Error ? err.message : String(err);
+      setProgress({ value: progress.value, text: `Error: ${message}` });
+      try {
+        if (ffmpeg) unmountFile(ffmpeg);
+      } catch {
+        /* ignore */
+      }
     } finally {
       setProcessing(false);
     }
@@ -243,7 +263,14 @@ export default function MediaConverter() {
           <SelectTrigger>
             <Select.Value />
             <Select.Icon>
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 12 12"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
                 <path d="M2 4l4 4 4-4" />
               </svg>
             </Select.Icon>
@@ -301,9 +328,7 @@ export default function MediaConverter() {
             <ResultName>{result.name}</ResultName>
             <ResultSize>{formatSize(result.blob.size)}</ResultSize>
           </ResultInfo>
-          <Button onClick={() => downloadBlob(result.blob, result.name)}>
-            Download
-          </Button>
+          <Button onClick={() => downloadBlob(result.blob, result.name)}>Download</Button>
         </ResultSection>
       )}
     </Layout>

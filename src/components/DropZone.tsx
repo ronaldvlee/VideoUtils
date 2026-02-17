@@ -6,13 +6,15 @@ interface ZoneProps {
 }
 
 const Zone = styled.div<ZoneProps>`
-  border: 2px dashed ${({ theme, $dragOver }) => $dragOver ? theme.accent : theme.border};
+  border: 2px dashed ${({ theme, $dragOver }) => ($dragOver ? theme.accent : theme.border)};
   border-radius: 12px;
   padding: 3rem 2rem;
   text-align: center;
   cursor: pointer;
-  transition: border-color 0.2s, background 0.2s;
-  background: ${({ $dragOver }) => $dragOver ? 'rgba(108, 92, 231, 0.05)' : 'transparent'};
+  transition:
+    border-color 0.2s,
+    background 0.2s;
+  background: ${({ $dragOver }) => ($dragOver ? 'rgba(108, 92, 231, 0.05)' : 'transparent')};
 
   &:hover {
     border-color: ${({ theme }) => theme.accent};
@@ -60,7 +62,10 @@ export default function DropZone({ accept, onFile, validate, label }: DropZonePr
     <Zone
       $dragOver={dragOver}
       onClick={() => inputRef.current?.click()}
-      onDragOver={(e: DragEvent<HTMLDivElement>) => { e.preventDefault(); setDragOver(true); }}
+      onDragOver={(e: DragEvent<HTMLDivElement>) => {
+        e.preventDefault();
+        setDragOver(true);
+      }}
       onDragLeave={() => setDragOver(false)}
       onDrop={handleDrop}
     >

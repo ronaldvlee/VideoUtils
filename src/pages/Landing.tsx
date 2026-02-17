@@ -22,7 +22,9 @@ const ToolCard = styled(Link)`
   padding: 1.25rem 1.5rem;
   text-decoration: none;
   color: ${({ theme }) => theme.text};
-  transition: border-color 0.2s, background 0.2s;
+  transition:
+    border-color 0.2s,
+    background 0.2s;
 
   &:hover {
     border-color: ${({ theme }) => theme.accent};
@@ -62,7 +64,14 @@ export default function Landing() {
 
       <ToolsGrid>
         <ToolCard to="/tools/video-chunker">
-          <ToolIcon viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <ToolIcon
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
             <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18" />
             <line x1="7" y1="2" x2="7" y2="22" />
             <line x1="17" y1="2" x2="17" y2="22" />
@@ -75,7 +84,14 @@ export default function Landing() {
         </ToolCard>
 
         <ToolCard to="/tools/media-converter">
-          <ToolIcon viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <ToolIcon
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
             <polyline points="16 3 21 3 21 8" />
             <line x1="4" y1="20" x2="21" y2="3" />
             <polyline points="21 16 21 21 16 21" />
@@ -88,7 +104,14 @@ export default function Landing() {
           </ToolDetails>
         </ToolCard>
         <ToolCard to="/tools/video-compressor">
-          <ToolIcon viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <ToolIcon
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
             <polyline points="4 14 10 14 10 20" />
             <polyline points="20 10 14 10 14 4" />
             <line x1="14" y1="10" x2="21" y2="3" />

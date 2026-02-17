@@ -7,7 +7,9 @@ import VideoCompressor from './pages/VideoCompressor';
 import { loadFFmpeg } from './tools/ffmpeg';
 
 export default function App() {
-  useEffect(() => { loadFFmpeg(); }, []);
+  useEffect(() => {
+    loadFFmpeg();
+  }, []);
 
   return (
     <Routes>
