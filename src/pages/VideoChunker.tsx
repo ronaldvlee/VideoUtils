@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import styled from 'styled-components';
 import * as Slider from '@radix-ui/react-slider';
+import * as ScrollArea from '@radix-ui/react-scroll-area';
+import { Download } from 'lucide-react';
 import Layout from '../components/Layout';
 import DropZone from '../components/DropZone';
 import FileList from '../components/FileList';
@@ -117,74 +119,127 @@ const ResultsSection = styled.div`
   margin-top: 2rem;
 `;
 
-const FileResultGroup = styled.div`
-  margin-bottom: 1.5rem;
+const ScrollRoot = styled(ScrollArea.Root)`
+  overflow: hidden;
+  border: 1px solid ${({ theme }) => theme.border};
+  border-radius: 8px;
+  background: ${({ theme }) => theme.surface};
 `;
 
-const FileResultHeader = styled.h3`
-  font-size: 0.95rem;
-  font-weight: 600;
-  margin-bottom: 0.5rem;
+const ScrollViewport = styled(ScrollArea.Viewport)`
+  width: 100%;
+  max-height: 320px;
 `;
 
-const ChunksList = styled.div`
+const ScrollBar = styled(ScrollArea.Scrollbar)`
   display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+  user-select: none;
+  touch-action: none;
+  padding: 2px;
+
+  &[data-orientation='vertical'] {
+    width: 8px;
+  }
 `;
 
-const ChunkItem = styled.div`
+const ScrollThumb = styled(ScrollArea.Thumb)`
+  flex: 1;
+  background: ${({ theme }) => theme.border};
+  border-radius: 4px;
+  position: relative;
+
+  &:hover {
+    background: ${({ theme }) => theme.textDim};
+  }
+`;
+
+const GroupHeader = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: ${({ theme }) => theme.surface};
-  border: 1px solid ${({ theme }) => theme.border};
-  border-radius: 8px;
-  padding: 0.75rem 1rem;
+  padding: 0.5rem 0.75rem;
+  background: ${({ theme }) => theme.bg};
+  border-bottom: 1px solid ${({ theme }) => theme.border};
+  position: sticky;
+  top: 0;
+  z-index: 1;
 `;
 
-const ChunkInfo = styled.div`
+const GroupName = styled.span`
+  font-weight: 600;
+  font-size: 0.85rem;
+`;
+
+const GroupDownload = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: none;
+  border: none;
+  color: ${({ theme }) => theme.accent};
+  cursor: pointer;
+  font-size: 0.8rem;
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+
+  &:hover {
+    background: ${({ theme }) => theme.surfaceHover};
+  }
+`;
+
+const ChunkRow = styled.div`
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  padding: 0.4rem 0.75rem;
+  border-bottom: 1px solid ${({ theme }) => theme.border};
+  gap: 0.75rem;
+
+  &:last-child {
+    border-bottom: none;
+  }
 `;
 
 const ChunkName = styled.span`
-  font-weight: 500;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 `;
 
 const ChunkSize = styled.span`
   color: ${({ theme }) => theme.textDim};
   font-size: 0.8rem;
+  flex-shrink: 0;
 `;
 
-const ChunkDownload = styled.button`
+const IconButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background: none;
-  border: 1px solid ${({ theme }) => theme.accent};
+  border: none;
   color: ${({ theme }) => theme.accent};
-  padding: 0.4rem 0.9rem;
-  border-radius: 6px;
   cursor: pointer;
-  font-size: 0.85rem;
-  transition:
-    background 0.2s,
-    color 0.2s;
+  padding: 0.3rem;
+  border-radius: 4px;
+  flex-shrink: 0;
 
   &:hover {
-    background: ${({ theme }) => theme.accent};
-    color: #fff;
+    background: ${({ theme }) => theme.surfaceHover};
   }
 `;
 
 const ErrorTag = styled.p`
   color: #e74c3c;
   font-size: 0.85rem;
-  margin-top: 0.25rem;
+  padding: 0.4rem 0.75rem;
 `;
 
-const ButtonRow = styled.div`
+const DownloadAllRow = styled.div`
   display: flex;
-  gap: 0.75rem;
+  justify-content: flex-end;
   margin-top: 0.5rem;
 `;
 
@@ -343,37 +398,54 @@ export default function VideoChunker() {
 
       {results.length > 0 && (
         <ResultsSection>
-          <h2>Chunks Ready</h2>
-          {results.map((r, i) => (
-            <FileResultGroup key={i}>
-              {results.length > 1 && <FileResultHeader>{r.fileName}</FileResultHeader>}
-              {r.error ? (
-                <ErrorTag>Error: {r.error}</ErrorTag>
-              ) : r.chunks.length === 0 ? (
-                <ErrorTag>File is already under the size limit</ErrorTag>
-              ) : (
-                <ChunksList>
-                  {r.chunks.map((chunk, j) => (
-                    <ChunkItem key={j}>
-                      <ChunkInfo>
-                        <ChunkName>{chunk.name}</ChunkName>
-                        <ChunkSize>{formatSize(chunk.size)}</ChunkSize>
-                      </ChunkInfo>
-                      <ChunkDownload onClick={() => downloadBlob(chunk.blob, chunk.name)}>
-                        Download
-                      </ChunkDownload>
-                    </ChunkItem>
-                  ))}
-                </ChunksList>
-              )}
-            </FileResultGroup>
-          ))}
+          <ScrollRoot>
+            <ScrollViewport>
+              {results.map((r, i) => {
+                const showHeader = results.length > 1;
+                return (
+                  <div key={i}>
+                    {showHeader && (
+                      <GroupHeader>
+                        <GroupName>{r.fileName}</GroupName>
+                        {r.chunks && r.chunks.length > 1 && (
+                          <GroupDownload
+                            onClick={() => r.chunks.forEach((c) => downloadBlob(c.blob, c.name))}
+                          >
+                            <Download size={14} /> All
+                          </GroupDownload>
+                        )}
+                      </GroupHeader>
+                    )}
+                    {r.error ? (
+                      <ErrorTag>Error: {r.error}</ErrorTag>
+                    ) : r.chunks.length === 0 ? (
+                      <ErrorTag>File is already under the size limit</ErrorTag>
+                    ) : (
+                      r.chunks.map((chunk, j) => (
+                        <ChunkRow key={j}>
+                          <ChunkName>{chunk.name}</ChunkName>
+                          <ChunkSize>{formatSize(chunk.size)}</ChunkSize>
+                          <IconButton onClick={() => downloadBlob(chunk.blob, chunk.name)}>
+                            <Download size={14} />
+                          </IconButton>
+                        </ChunkRow>
+                      ))
+                    )}
+                  </div>
+                );
+              })}
+            </ScrollViewport>
+            <ScrollBar orientation="vertical">
+              <ScrollThumb />
+            </ScrollBar>
+          </ScrollRoot>
           {allChunks.length > 1 && (
-            <ButtonRow>
+            <DownloadAllRow>
               <Button onClick={() => allChunks.forEach((c) => downloadBlob(c.blob, c.name))}>
-                Download All
+                <Download size={14} style={{ marginRight: '0.4rem' }} /> Download All (
+                {allChunks.length})
               </Button>
-            </ButtonRow>
+            </DownloadAllRow>
           )}
         </ResultsSection>
       )}
