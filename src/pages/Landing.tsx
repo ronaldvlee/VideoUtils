@@ -12,19 +12,36 @@ const ToolsGrid = styled.div`
   gap: 0.75rem;
 `;
 
-const ToolCard = styled(Link)`
+const toolCardStyles = `
   display: flex;
   align-items: center;
   gap: 1rem;
-  background: ${({ theme }) => theme.surface};
-  border: 1px solid ${({ theme }) => theme.border};
   border-radius: 12px;
   padding: 1.25rem 1.5rem;
   text-decoration: none;
-  color: ${({ theme }) => theme.text};
   transition:
     border-color 0.2s,
     background 0.2s;
+`;
+
+const ToolCard = styled(Link)`
+  ${toolCardStyles}
+  background: ${({ theme }) => theme.surface};
+  border: 1px solid ${({ theme }) => theme.border};
+  color: ${({ theme }) => theme.text};
+
+  &:hover {
+    border-color: ${({ theme }) => theme.accent};
+    background: ${({ theme }) => theme.surfaceHover};
+    color: ${({ theme }) => theme.text};
+  }
+`;
+
+const ExternalToolCard = styled.a`
+  ${toolCardStyles}
+  background: ${({ theme }) => theme.surface};
+  border: 1px solid ${({ theme }) => theme.border};
+  color: ${({ theme }) => theme.text};
 
   &:hover {
     border-color: ${({ theme }) => theme.accent};
@@ -122,6 +139,24 @@ export default function Landing() {
             <ToolDesc>Compress videos to a target file size</ToolDesc>
           </ToolDetails>
         </ToolCard>
+        <ExternalToolCard href="https://cobalt.tools/" target="_blank" rel="noopener noreferrer">
+          <ToolIcon
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="7 10 12 15 17 10" />
+            <line x1="12" y1="15" x2="12" y2="3" />
+          </ToolIcon>
+          <ToolDetails>
+            <ToolName>Video Downloader</ToolName>
+            <ToolDesc>Download videos from YouTube, X, and more via cobalt.tools</ToolDesc>
+          </ToolDetails>
+        </ExternalToolCard>
       </ToolsGrid>
     </>
   );
