@@ -5,6 +5,7 @@ import VideoChunker from './pages/VideoChunker';
 import MediaConverter from './pages/MediaConverter';
 import VideoCompressor from './pages/VideoCompressor';
 import { loadFFmpeg } from './tools/ffmpeg';
+import Footer from './components/Footer';
 
 export default function App() {
   useEffect(() => {
@@ -12,11 +13,14 @@ export default function App() {
   }, []);
 
   return (
-    <Routes>
-      <Route path="/" element={<Landing />} />
-      <Route path="/tools/video-chunker" element={<VideoChunker />} />
-      <Route path="/tools/media-converter" element={<MediaConverter />} />
-      <Route path="/tools/video-compressor" element={<VideoCompressor />} />
-    </Routes>
+    <>
+      <Routes>
+        <Route path="/" element={<Landing />} />
+        <Route path="/tools/video-chunker" element={<VideoChunker />} />
+        <Route path="/tools/media-converter" element={<MediaConverter />} />
+        <Route path="/tools/video-compressor" element={<VideoCompressor />} />
+      </Routes>
+      <Footer />
+    </>
   );
 }
