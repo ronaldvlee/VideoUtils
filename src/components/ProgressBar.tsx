@@ -25,7 +25,13 @@ const Section = styled.div`
   margin-top: 2rem;
 `;
 
-export default function ProgressBar({ value, text, title }) {
+interface ProgressBarProps {
+  value: number;
+  text?: string;
+  title?: string;
+}
+
+export default function ProgressBar({ value, text, title }: ProgressBarProps) {
   return (
     <Section>
       <h2>{title || 'Processing'}</h2>

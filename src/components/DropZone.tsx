@@ -1,7 +1,11 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, DragEvent, ChangeEvent } from 'react';
 import styled from 'styled-components';
 
-const Zone = styled.div`
+interface ZoneProps {
+  $dragOver: boolean;
+}
+
+const Zone = styled.div<ZoneProps>`
   border: 2px dashed ${({ theme, $dragOver }) => $dragOver ? theme.accent : theme.border};
   border-radius: 12px;
   padding: 3rem 2rem;
@@ -32,11 +36,18 @@ const Hint = styled.p`
   margin-top: 0.25rem;
 `;
 
-export default function DropZone({ accept, onFile, validate, label }) {
-  const [dragOver, setDragOver] = useState(false);
-  const inputRef = useRef();
+interface DropZoneProps {
+  accept?: string;
+  onFile: (file: File) => void;
+  validate?: (file: File) => boolean;
+  label?: string;
+}
 
-  const handleDrop = (e) => {
+export default function DropZone({ accept, onFile, validate, label }: DropZoneProps) {
+  const [dragOver, setDragOver] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const handleDrop = (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setDragOver(false);
     const file = e.dataTransfer.files[0];
@@ -48,8 +59,8 @@ export default function DropZone({ accept, onFile, validate, label }) {
   return (
     <Zone
       $dragOver={dragOver}
-      onClick={() => inputRef.current.click()}
-      onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+      onClick={() => inputRef.current?.click()}
+      onDragOver={(e: DragEvent<HTMLDivElement>) => { e.preventDefault(); setDragOver(true); }}
       onDragLeave={() => setDragOver(false)}
       onDrop={handleDrop}
     >
@@ -65,8 +76,8 @@ export default function DropZone({ accept, onFile, validate, label }) {
         type="file"
         accept={accept}
         hidden
-        onChange={(e) => {
-          if (e.target.files[0]) onFile(e.target.files[0]);
+        onChange={(e: ChangeEvent<HTMLInputElement>) => {
+          if (e.target.files && e.target.files[0]) onFile(e.target.files[0]);
         }}
       />
     </Zone>

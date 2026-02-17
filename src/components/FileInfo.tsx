@@ -25,7 +25,11 @@ const FileSize = styled.span`
   flex-shrink: 0;
 `;
 
-export default function FileInfo({ file }) {
+interface FileInfoProps {
+  file: File;
+}
+
+export default function FileInfo({ file }: FileInfoProps) {
   return (
     <Wrapper>
       <FileName>{file.name}</FileName>

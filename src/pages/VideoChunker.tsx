@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import styled from 'styled-components';
 import * as Slider from '@radix-ui/react-slider';
 import Layout from '../components/Layout';
@@ -7,7 +7,8 @@ import FileInfo from '../components/FileInfo';
 import ProgressBar from '../components/ProgressBar';
 import Button from '../components/Button';
 import { formatSize } from '../utils/formatSize';
-import { loadFFmpeg, mountFile, unmountFile, getVideoDuration, splitVideo } from '../tools/video-chunker';
+import { loadFFmpeg, mountFile, unmountFile, getVideoDuration, splitVideo, type Chunk, type ChunkProgress } from '../tools/video-chunker';
+import type { FFmpeg } from '../tools/ffmpeg';
 
 const Settings = styled.div`
   margin-top: 1.5rem;
@@ -153,7 +154,7 @@ const ChunkDownload = styled.button`
   }
 `;
 
-function downloadBlob(blob, name) {
+function downloadBlob(blob: Blob, name: string) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
@@ -165,11 +166,11 @@ function downloadBlob(blob, name) {
 }
 
 export default function VideoChunker() {
-  const [file, setFile] = useState(null);
+  const [file, setFile] = useState<File | null>(null);
   const [chunkSizeMB, setChunkSizeMB] = useState(200);
   const [processing, setProcessing] = useState(false);
-  const [progress, setProgress] = useState({ value: 0, text: '' });
-  const [chunks, setChunks] = useState([]);
+  const [progress, setProgress] = useState<{ value: number; text: string }>({ value: 0, text: '' });
+  const [chunks, setChunks] = useState<Chunk[]>([]);
   const [showResults, setShowResults] = useState(false);
 
   const getEstimate = useCallback(() => {
@@ -179,7 +180,7 @@ export default function VideoChunker() {
     return `Estimated chunks: ~${estimated}`;
   }, [file, chunkSizeMB]);
 
-  const handleFile = (f) => {
+  const handleFile = (f: File) => {
     setFile(f);
     setShowResults(false);
     setChunks([]);
@@ -193,7 +194,7 @@ export default function VideoChunker() {
     setShowResults(false);
     setChunks([]);
 
-    let ffmpeg = null;
+    let ffmpeg: FFmpeg | null = null;
     try {
       setProgress({ value: 0, text: 'Loading FFmpeg (first time may take a moment)...' });
       ffmpeg = await loadFFmpeg();
@@ -212,17 +213,17 @@ export default function VideoChunker() {
       setProgress({ value: 10, text: 'Analyzing video duration...' });
       const duration = await getVideoDuration(ffmpeg, inputPath);
 
-      const result = await splitVideo(ffmpeg, inputPath, file.name, file.size, duration, maxBytes, (info) => {
+      const result = await splitVideo(ffmpeg, inputPath, file.name, file.size, duration, maxBytes, (info: ChunkProgress) => {
         setProgress({ value: 15 + (info.percent * 0.85), text: info.message });
       });
 
       unmountFile(ffmpeg);
       setChunks(result);
       setShowResults(true);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
       setProgress({ value: progress.value, text: `Error: ${err.message}` });
-      try { unmountFile(ffmpeg); } catch { /* ignore */ }
+      try { if (ffmpeg) unmountFile(ffmpeg); } catch { /* ignore */ }
     } finally {
       setProcessing(false);
     }
@@ -236,7 +237,7 @@ export default function VideoChunker() {
       <DropZone
         accept="video/*"
         label="Drag & drop a video file here"
-        validate={(f) => f.type.startsWith('video/')}
+        validate={(f: File) => f.type.startsWith('video/')}
         onFile={handleFile}
       />
 
@@ -295,6 +296,7 @@ export default function VideoChunker() {
               </ChunkItem>
             ))}
           </ChunksList>
+          {/* @ts-ignore */}
           <Button $variant="secondary" onClick={() => chunks.forEach((c) => downloadBlob(c.blob, c.name))}>
             Download All
           </Button>

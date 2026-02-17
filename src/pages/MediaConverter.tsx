@@ -7,23 +7,24 @@ import FileInfo from '../components/FileInfo';
 import ProgressBar from '../components/ProgressBar';
 import Button from '../components/Button';
 import { formatSize } from '../utils/formatSize';
-import { loadFFmpeg, mountFile, unmountFile, getMediaDuration, convertMedia, VIDEO_FORMATS, AUDIO_FORMATS } from '../tools/media-converter';
+import { loadFFmpeg, mountFile, unmountFile, getMediaDuration, convertMedia, VIDEO_FORMATS, AUDIO_FORMATS, type ConvertProgress } from '../tools/media-converter';
+import type { FFmpeg } from '../tools/ffmpeg';
 
 const ALL_EXTENSIONS = [...VIDEO_FORMATS, ...AUDIO_FORMATS];
 
-function getExtension(filename) {
+function getExtension(filename: string): string {
   const dot = filename.lastIndexOf('.');
   return dot >= 0 ? filename.substring(dot + 1).toLowerCase() : '';
 }
 
-function isAcceptedFile(file) {
+function isAcceptedFile(file: File): boolean {
   if (file.type.startsWith('video/') || file.type.startsWith('audio/')) return true;
-  return ALL_EXTENSIONS.includes(getExtension(file.name));
+  return ALL_EXTENSIONS.includes(getExtension(file.name) as any);
 }
 
-function isVideoFile(file) {
+function isVideoFile(file: File): boolean {
   if (file.type.startsWith('video/')) return true;
-  return VIDEO_FORMATS.includes(getExtension(file.name));
+  return VIDEO_FORMATS.includes(getExtension(file.name) as any);
 }
 
 const Settings = styled.div`
@@ -119,7 +120,7 @@ const ResultSize = styled.span`
   flex-shrink: 0;
 `;
 
-function downloadBlob(blob, name) {
+function downloadBlob(blob: Blob, name: string) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
@@ -130,14 +131,25 @@ function downloadBlob(blob, name) {
   URL.revokeObjectURL(url);
 }
 
+interface FormatOptions {
+  isVideo: boolean;
+  video: readonly string[];
+  audio: readonly string[];
+}
+
+interface Result {
+  blob: Blob;
+  name: string;
+}
+
 export default function MediaConverter() {
-  const [file, setFile] = useState(null);
+  const [file, setFile] = useState<File | null>(null);
   const [targetFormat, setTargetFormat] = useState('mp4');
   const [processing, setProcessing] = useState(false);
-  const [progress, setProgress] = useState({ value: 0, text: '' });
-  const [result, setResult] = useState(null); // { blob, name }
+  const [progress, setProgress] = useState<{ value: number; text: string }>({ value: 0, text: '' });
+  const [result, setResult] = useState<Result | null>(null);
 
-  const formatOptions = useMemo(() => {
+  const formatOptions: FormatOptions = useMemo(() => {
     if (!file) return { video: VIDEO_FORMATS, audio: AUDIO_FORMATS, isVideo: true };
     const ext = getExtension(file.name);
     const isVideo = isVideoFile(file);
@@ -156,7 +168,7 @@ export default function MediaConverter() {
     };
   }, [file]);
 
-  const handleFile = (f) => {
+  const handleFile = (f: File) => {
     setFile(f);
     setResult(null);
     setProgress({ value: 0, text: '' });
@@ -178,7 +190,7 @@ export default function MediaConverter() {
     setProcessing(true);
     setResult(null);
 
-    let ffmpeg = null;
+    let ffmpeg: FFmpeg | null = null;
     try {
       setProgress({ value: 0, text: 'Loading FFmpeg (first time may take a moment)...' });
       ffmpeg = await loadFFmpeg();
@@ -189,7 +201,7 @@ export default function MediaConverter() {
       setProgress({ value: 10, text: 'Analyzing media duration...' });
       const duration = await getMediaDuration(ffmpeg, inputPath);
 
-      const blob = await convertMedia(ffmpeg, inputPath, targetFormat, duration, (info) => {
+      const blob = await convertMedia(ffmpeg, inputPath, targetFormat, duration, (info: ConvertProgress) => {
         setProgress({ value: 10 + (info.percent * 0.9), text: info.message });
       });
 
@@ -202,10 +214,10 @@ export default function MediaConverter() {
 
       setProgress({ value: 100, text: 'Done!' });
       setResult({ blob, name: resultName });
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
       setProgress({ value: progress.value, text: `Error: ${err.message}` });
-      try { unmountFile(ffmpeg); } catch { /* ignore */ }
+      try { if (ffmpeg) unmountFile(ffmpeg); } catch { /* ignore */ }
     } finally {
       setProcessing(false);
     }

@@ -1,6 +1,10 @@
 import styled, { css } from 'styled-components';
 
-const Button = styled.button`
+interface ButtonProps {
+  $variant?: 'primary' | 'secondary';
+}
+
+const Button = styled.button<ButtonProps>`
   display: inline-flex;
   align-items: center;
   justify-content: center;

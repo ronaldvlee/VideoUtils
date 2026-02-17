@@ -1,3 +1,4 @@
+import { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
 
@@ -11,7 +12,13 @@ const Subtitle = styled.p`
   margin-bottom: 2rem;
 `;
 
-export default function Layout({ title, subtitle, children }) {
+interface LayoutProps {
+  title: string;
+  subtitle?: string;
+  children: ReactNode;
+}
+
+export default function Layout({ title, subtitle, children }: LayoutProps) {
   return (
     <>
       <BackLink to="/">&larr; All Tools</BackLink>
