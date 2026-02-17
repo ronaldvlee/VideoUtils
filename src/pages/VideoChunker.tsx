@@ -1,12 +1,13 @@
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import styled from 'styled-components';
 import * as Slider from '@radix-ui/react-slider';
 import Layout from '../components/Layout';
 import DropZone from '../components/DropZone';
-import FileInfo from '../components/FileInfo';
+import FileList from '../components/FileList';
 import ProgressBar from '../components/ProgressBar';
 import Button from '../components/Button';
 import { formatSize } from '../utils/formatSize';
+import { useFileList } from '../hooks/useFileList';
 import {
   loadFFmpeg,
   mountFile,
@@ -116,6 +117,16 @@ const ResultsSection = styled.div`
   margin-top: 2rem;
 `;
 
+const FileResultGroup = styled.div`
+  margin-bottom: 1.5rem;
+`;
+
+const FileResultHeader = styled.h3`
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+`;
+
 const ChunksList = styled.div`
   display: flex;
   flex-direction: column;
@@ -165,96 +176,133 @@ const ChunkDownload = styled.button`
   }
 `;
 
+const ErrorTag = styled.p`
+  color: #e74c3c;
+  font-size: 0.85rem;
+  margin-top: 0.25rem;
+`;
+
+const ButtonRow = styled.div`
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+`;
+
+const isVideoFile = (f: File) =>
+  f.type.startsWith('video/') || /\.(mp4|mkv|avi|mov|wmv|flv|webm|ogv|3gp|m4v)$/i.test(f.name);
+
+interface FileChunkResult {
+  fileName: string;
+  chunks: Chunk[];
+  error?: undefined;
+}
+
+interface FileChunkError {
+  fileName: string;
+  error: string;
+  chunks?: undefined;
+}
+
+type ChunkResultEntry = FileChunkResult | FileChunkError;
+
 export default function VideoChunker() {
-  const [file, setFile] = useState<File | null>(null);
+  const { files, addFiles, removeFile } = useFileList({ validate: isVideoFile });
   const [chunkSizeMB, setChunkSizeMB] = useState(200);
   const [processing, setProcessing] = useState(false);
   const [progress, setProgress] = useState<{ value: number; text: string }>({ value: 0, text: '' });
-  const [chunks, setChunks] = useState<Chunk[]>([]);
-  const [showResults, setShowResults] = useState(false);
+  const [results, setResults] = useState<ChunkResultEntry[]>([]);
 
-  const getEstimate = useCallback(() => {
-    if (!file) return '';
+  const getEstimate = () => {
+    if (files.length === 0) return '';
     const maxBytes = chunkSizeMB * 1024 * 1024;
-    const estimated = Math.ceil(file.size / (maxBytes * 0.95));
-    return `Estimated chunks: ~${estimated}`;
-  }, [file, chunkSizeMB]);
-
-  const handleFile = (f: File) => {
-    setFile(f);
-    setShowResults(false);
-    setChunks([]);
-    setProgress({ value: 0, text: '' });
+    const totalChunks = files.reduce((sum, f) => sum + Math.ceil(f.size / (maxBytes * 0.95)), 0);
+    return `Estimated chunks: ~${totalChunks} total across ${files.length} file${files.length > 1 ? 's' : ''}`;
   };
 
   const handleSplit = async () => {
-    if (!file) return;
+    if (files.length === 0) return;
 
     setProcessing(true);
-    setShowResults(false);
-    setChunks([]);
+    setResults([]);
+
+    const total = files.length;
+    const perFile = 100 / total;
+    const newResults: ChunkResultEntry[] = [];
 
     let ffmpeg: FFmpeg | null = null;
     try {
       setProgress({ value: 0, text: 'Loading FFmpeg (first time may take a moment)...' });
       ffmpeg = await loadFFmpeg();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setProgress({ value: 0, text: `Error loading FFmpeg: ${message}` });
+      setProcessing(false);
+      return;
+    }
 
+    for (let i = 0; i < total; i++) {
+      const file = files[i];
+      const fileBase = perFile * i;
+      const label = total > 1 ? `(${i + 1}/${total}) ${file.name}` : file.name;
       const maxBytes = chunkSizeMB * 1024 * 1024;
 
-      if (file.size <= maxBytes) {
-        setProgress({ value: 100, text: 'File is already under the size limit!' });
-        setProcessing(false);
-        return;
-      }
-
-      setProgress({ value: 5, text: 'Mounting video file...' });
-      const inputPath = mountFile(ffmpeg, file);
-
-      setProgress({ value: 10, text: 'Analyzing video duration...' });
-      const duration = await getVideoDuration(ffmpeg, inputPath);
-
-      const result = await splitVideo(
-        ffmpeg,
-        inputPath,
-        file.name,
-        file.size,
-        duration,
-        maxBytes,
-        (info: ChunkProgress) => {
-          setProgress({ value: 15 + info.percent * 0.85, text: info.message });
-        }
-      );
-
-      unmountFile(ffmpeg);
-      setChunks(result);
-      setShowResults(true);
-    } catch (err) {
-      console.error(err);
-      const message = err instanceof Error ? err.message : String(err);
-      setProgress({ value: progress.value, text: `Error: ${message}` });
       try {
-        if (ffmpeg) unmountFile(ffmpeg);
-      } catch {
-        /* ignore */
+        if (file.size <= maxBytes) {
+          newResults.push({ fileName: file.name, chunks: [] });
+          continue;
+        }
+
+        setProgress({ value: fileBase, text: `Mounting ${label}...` });
+        const inputPath = mountFile(ffmpeg, file);
+
+        setProgress({ value: fileBase + perFile * 0.05, text: `Analyzing ${label}...` });
+        const duration = await getVideoDuration(ffmpeg, inputPath);
+
+        const chunks = await splitVideo(
+          ffmpeg,
+          inputPath,
+          file.name,
+          file.size,
+          duration,
+          maxBytes,
+          (info: ChunkProgress) => {
+            const fileProgress = 0.1 + info.percent * 0.009;
+            setProgress({
+              value: fileBase + perFile * fileProgress,
+              text: `Splitting ${label}... chunk ${info.current} of ~${info.total}`,
+            });
+          }
+        );
+
+        unmountFile(ffmpeg);
+        newResults.push({ fileName: file.name, chunks });
+      } catch (err) {
+        console.error(`Error splitting ${file.name}:`, err);
+        const message = err instanceof Error ? err.message : String(err);
+        newResults.push({ fileName: file.name, error: message });
+        try {
+          unmountFile(ffmpeg);
+        } catch {
+          /* ignore */
+        }
       }
-    } finally {
-      setProcessing(false);
     }
+
+    setProgress({ value: 100, text: 'Done!' });
+    setResults(newResults);
+    setProcessing(false);
   };
+
+  const allChunks = results.flatMap((r) => (r.chunks ? r.chunks : []));
 
   return (
     <Layout
       title="Video Chunker"
       subtitle="Split large videos into smaller chunks — entirely in your browser."
     >
-      <DropZone
-        accept="video/*"
-        label="Drag & drop a video file here"
-        validate={(f: File) => f.type.startsWith('video/')}
-        onFile={handleFile}
-      />
+      <DropZone accept="video/*" label="Drag & drop video files here" multiple onFiles={addFiles} />
 
-      {file && <FileInfo file={file} />}
+      <FileList files={files} onRemove={removeFile} />
 
       <Settings>
         <Label>Max chunk size</Label>
@@ -284,8 +332,8 @@ export default function VideoChunker() {
           </SizeInputGroup>
         </SizeControls>
         <Estimate>{getEstimate()}</Estimate>
-        <Button onClick={handleSplit} disabled={!file || processing}>
-          Split Video
+        <Button onClick={handleSplit} disabled={files.length === 0 || processing}>
+          Split{files.length > 1 ? ` (${files.length} files)` : ''}
         </Button>
       </Settings>
 
@@ -293,28 +341,40 @@ export default function VideoChunker() {
         <ProgressBar value={progress.value} text={progress.text} title="Processing" />
       )}
 
-      {showResults && chunks.length > 0 && (
+      {results.length > 0 && (
         <ResultsSection>
           <h2>Chunks Ready</h2>
-          <ChunksList>
-            {chunks.map((chunk, i) => (
-              <ChunkItem key={i}>
-                <ChunkInfo>
-                  <ChunkName>{chunk.name}</ChunkName>
-                  <ChunkSize>{formatSize(chunk.size)}</ChunkSize>
-                </ChunkInfo>
-                <ChunkDownload onClick={() => downloadBlob(chunk.blob, chunk.name)}>
-                  Download
-                </ChunkDownload>
-              </ChunkItem>
-            ))}
-          </ChunksList>
-          <Button
-            $variant="secondary"
-            onClick={() => chunks.forEach((c) => downloadBlob(c.blob, c.name))}
-          >
-            Download All
-          </Button>
+          {results.map((r, i) => (
+            <FileResultGroup key={i}>
+              {results.length > 1 && <FileResultHeader>{r.fileName}</FileResultHeader>}
+              {r.error ? (
+                <ErrorTag>Error: {r.error}</ErrorTag>
+              ) : r.chunks.length === 0 ? (
+                <ErrorTag>File is already under the size limit</ErrorTag>
+              ) : (
+                <ChunksList>
+                  {r.chunks.map((chunk, j) => (
+                    <ChunkItem key={j}>
+                      <ChunkInfo>
+                        <ChunkName>{chunk.name}</ChunkName>
+                        <ChunkSize>{formatSize(chunk.size)}</ChunkSize>
+                      </ChunkInfo>
+                      <ChunkDownload onClick={() => downloadBlob(chunk.blob, chunk.name)}>
+                        Download
+                      </ChunkDownload>
+                    </ChunkItem>
+                  ))}
+                </ChunksList>
+              )}
+            </FileResultGroup>
+          ))}
+          {allChunks.length > 1 && (
+            <ButtonRow>
+              <Button onClick={() => allChunks.forEach((c) => downloadBlob(c.blob, c.name))}>
+                Download All
+              </Button>
+            </ButtonRow>
+          )}
         </ResultsSection>
       )}
     </Layout>

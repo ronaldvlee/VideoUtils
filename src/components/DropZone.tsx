@@ -40,21 +40,41 @@ const Hint = styled.p`
 
 interface DropZoneProps {
   accept?: string;
-  onFile: (file: File) => void;
+  onFile?: (file: File) => void;
+  onFiles?: (files: File[]) => void;
+  multiple?: boolean;
   validate?: (file: File) => boolean;
   label?: string;
 }
 
-export default function DropZone({ accept, onFile, validate, label }: DropZoneProps) {
+export default function DropZone({
+  accept,
+  onFile,
+  onFiles,
+  multiple,
+  validate,
+  label,
+}: DropZoneProps) {
   const [dragOver, setDragOver] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const handleSelected = (fileList: FileList) => {
+    const all = Array.from(fileList);
+    const valid = validate ? all.filter(validate) : all;
+    if (valid.length === 0) return;
+
+    if (multiple && onFiles) {
+      onFiles(valid);
+    } else if (onFile) {
+      onFile(valid[0]);
+    }
+  };
 
   const handleDrop = (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setDragOver(false);
-    const file = e.dataTransfer.files[0];
-    if (file && (!validate || validate(file))) {
-      onFile(file);
+    if (e.dataTransfer.files.length > 0) {
+      handleSelected(e.dataTransfer.files);
     }
   };
 
@@ -80,9 +100,10 @@ export default function DropZone({ accept, onFile, validate, label }: DropZonePr
         ref={inputRef}
         type="file"
         accept={accept}
+        multiple={multiple}
         hidden
         onChange={(e: ChangeEvent<HTMLInputElement>) => {
-          if (e.target.files && e.target.files[0]) onFile(e.target.files[0]);
+          if (e.target.files && e.target.files.length > 0) handleSelected(e.target.files);
         }}
       />
     </Zone>
