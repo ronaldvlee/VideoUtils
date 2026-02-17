@@ -22,6 +22,20 @@ export const VIDEO_FORMATS = [
   '265',
 ] as const;
 export const AUDIO_FORMATS = ['mp3', 'wav', 'ogg', 'aac', 'wma', 'flac', 'm4a'] as const;
+export const IMAGE_FORMATS = [
+  'jpg',
+  'jpeg',
+  'png',
+  'gif',
+  'bmp',
+  'webp',
+  'ico',
+  'tif',
+  'tiff',
+  'svg',
+  'raw',
+  'tga',
+] as const;
 
 export interface ConvertProgress {
   percent: number;
@@ -33,6 +47,10 @@ function isVideoToAudio(inputExt: string, outputExt: string): boolean {
     (VIDEO_FORMATS as readonly string[]).includes(inputExt) &&
     (AUDIO_FORMATS as readonly string[]).includes(outputExt)
   );
+}
+
+function isImage(ext: string): boolean {
+  return (IMAGE_FORMATS as readonly string[]).includes(ext);
 }
 
 export async function getMediaDuration(ffmpeg: FFmpeg, inputPath: string): Promise<number> {
@@ -69,6 +87,10 @@ export async function convertMedia(
 
   if (isVideoToAudio(inputExt, outputFormat)) {
     args.push('-vn');
+  }
+
+  if (isImage(outputFormat)) {
+    args.push('-frames:v', '1');
   }
 
   args.push(outputName);

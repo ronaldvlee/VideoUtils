@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import styled from 'styled-components';
 import * as Select from '@radix-ui/react-select';
 import Layout from '../components/Layout';
@@ -16,12 +16,13 @@ import {
   convertMedia,
   VIDEO_FORMATS,
   AUDIO_FORMATS,
+  IMAGE_FORMATS,
   type ConvertProgress,
 } from '../tools/media-converter';
 import type { FFmpeg } from '../tools/ffmpeg';
 import { downloadBlob } from '../utils/downloadBlob';
 
-const ALL_EXTENSIONS = [...VIDEO_FORMATS, ...AUDIO_FORMATS] as const;
+const ALL_EXTENSIONS = [...VIDEO_FORMATS, ...AUDIO_FORMATS, ...IMAGE_FORMATS] as const;
 
 function getExtension(filename: string): string {
   const dot = filename.lastIndexOf('.');
@@ -29,8 +30,18 @@ function getExtension(filename: string): string {
 }
 
 function isAcceptedFile(file: File): boolean {
-  if (file.type.startsWith('video/') || file.type.startsWith('audio/')) return true;
+  if (
+    file.type.startsWith('video/') ||
+    file.type.startsWith('audio/') ||
+    file.type.startsWith('image/')
+  )
+    return true;
   return ALL_EXTENSIONS.includes(getExtension(file.name));
+}
+
+function isImageFile(file: File): boolean {
+  if (file.type.startsWith('image/')) return true;
+  return (IMAGE_FORMATS as readonly string[]).includes(getExtension(file.name));
 }
 
 const Settings = styled.div`
@@ -171,8 +182,30 @@ export default function MediaConverter() {
   const [progress, setProgress] = useState<{ value: number; text: string }>({ value: 0, text: '' });
   const [results, setResults] = useState<ResultEntry[]>([]);
 
+  const fileCategory = useMemo(() => {
+    if (files.length === 0) return 'all';
+    const hasImages = files.some(isImageFile);
+    const hasMedia = files.some((f) => !isImageFile(f));
+    if (hasImages && hasMedia) return 'all';
+    return hasImages ? 'image' : 'media';
+  }, [files]);
+
+  const showMedia = fileCategory === 'all' || fileCategory === 'media';
+  const showImage = fileCategory === 'all' || fileCategory === 'image';
+
+  const effectiveFormat = useMemo(() => {
+    const mediaFormats: readonly string[] = [...VIDEO_FORMATS, ...AUDIO_FORMATS];
+    const imageFormats: readonly string[] = [...IMAGE_FORMATS];
+    const isMediaFormat = mediaFormats.includes(targetFormat);
+    const isImageFormat = imageFormats.includes(targetFormat);
+
+    if (!showMedia && isMediaFormat) return IMAGE_FORMATS[0];
+    if (!showImage && isImageFormat) return VIDEO_FORMATS[0];
+    return targetFormat;
+  }, [showMedia, showImage, targetFormat]);
+
   const handleConvert = async () => {
-    if (files.length === 0 || !targetFormat) return;
+    if (files.length === 0 || !effectiveFormat) return;
 
     setProcessing(true);
     setResults([]);
@@ -207,7 +240,7 @@ export default function MediaConverter() {
         const blob = await convertMedia(
           ffmpeg,
           inputPath,
-          targetFormat,
+          effectiveFormat,
           duration,
           (info: ConvertProgress) => {
             const fileProgress = 0.1 + info.percent * 0.009;
@@ -223,7 +256,7 @@ export default function MediaConverter() {
         const baseName = file.name.includes('.')
           ? file.name.substring(0, file.name.lastIndexOf('.'))
           : file.name;
-        newResults.push({ blob, name: `${baseName}.${targetFormat}` });
+        newResults.push({ blob, name: `${baseName}.${effectiveFormat}` });
       } catch (err) {
         console.error(`Error converting ${file.name}:`, err);
         const message = err instanceof Error ? err.message : String(err);
@@ -252,11 +285,11 @@ export default function MediaConverter() {
   return (
     <Layout
       title="Media Converter"
-      subtitle="Convert video and audio files between formats — entirely in your browser."
+      subtitle="Convert video, audio, and image files between formats — entirely in your browser."
     >
       <DropZone
-        accept="video/*,audio/*,.mp3,.wav,.ogg,.aac,.wma,.flac,.m4a,.mkv,.flv,.ogv,.webm,.h264,.264,.hevc,.265"
-        label="Drag & drop video or audio files here"
+        accept="video/*,audio/*,image/*,.mp3,.wav,.ogg,.aac,.wma,.flac,.m4a,.mkv,.flv,.ogv,.webm,.h264,.264,.hevc,.265,.jpg,.jpeg,.png,.gif,.bmp,.webp,.ico,.tif,.tiff,.svg,.raw,.tga"
+        label="Drag & drop video, audio, or image files here"
         multiple
         onFiles={addFiles}
       />
@@ -265,7 +298,7 @@ export default function MediaConverter() {
 
       <Settings>
         <Label>Convert to</Label>
-        <Select.Root value={targetFormat} onValueChange={setTargetFormat}>
+        <Select.Root value={effectiveFormat} onValueChange={setTargetFormat}>
           <SelectTrigger>
             <Select.Value />
             <Select.Icon>
@@ -284,23 +317,38 @@ export default function MediaConverter() {
           <Select.Portal>
             <SelectContent position="popper" sideOffset={4}>
               <Select.Viewport>
-                <SelectGroup>
-                  <SelectLabel>Video</SelectLabel>
-                  {VIDEO_FORMATS.map((fmt) => (
-                    <SelectItem key={fmt} value={fmt}>
-                      <Select.ItemText>{fmt.toUpperCase()}</Select.ItemText>
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-                <SelectSeparator />
-                <SelectGroup>
-                  <SelectLabel>Audio (extract audio track)</SelectLabel>
-                  {AUDIO_FORMATS.map((fmt) => (
-                    <SelectItem key={fmt} value={fmt}>
-                      <Select.ItemText>{fmt.toUpperCase()}</Select.ItemText>
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
+                {showMedia && (
+                  <>
+                    <SelectGroup>
+                      <SelectLabel>Video</SelectLabel>
+                      {VIDEO_FORMATS.map((fmt) => (
+                        <SelectItem key={fmt} value={fmt}>
+                          <Select.ItemText>{fmt.toUpperCase()}</Select.ItemText>
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                    <SelectSeparator />
+                    <SelectGroup>
+                      <SelectLabel>Audio (extract audio track)</SelectLabel>
+                      {AUDIO_FORMATS.map((fmt) => (
+                        <SelectItem key={fmt} value={fmt}>
+                          <Select.ItemText>{fmt.toUpperCase()}</Select.ItemText>
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </>
+                )}
+                {showMedia && showImage && <SelectSeparator />}
+                {showImage && (
+                  <SelectGroup>
+                    <SelectLabel>Image</SelectLabel>
+                    {IMAGE_FORMATS.map((fmt) => (
+                      <SelectItem key={fmt} value={fmt}>
+                        <Select.ItemText>{fmt.toUpperCase()}</Select.ItemText>
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                )}
               </Select.Viewport>
             </SelectContent>
           </Select.Portal>
