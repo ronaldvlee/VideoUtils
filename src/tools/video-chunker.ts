@@ -46,7 +46,7 @@ export async function splitVideo(
   onProgress: (info: ChunkProgress) => void
 ): Promise<Chunk[]> {
   const avgBitrate = fileSize / duration; // bytes per second
-  const estimatedChunkDuration = (maxChunkBytes * 0.95) / avgBitrate;
+  const estimatedChunkDuration = maxChunkBytes / avgBitrate;
   const estimatedTotalChunks = Math.ceil(duration / estimatedChunkDuration);
 
   const ext = fileName.includes('.') ? fileName.substring(fileName.lastIndexOf('.')) : '.mp4';
@@ -79,17 +79,18 @@ export async function splitVideo(
     };
     ffmpeg.on('log', timeHandler);
 
-    // -fs enforces a hard byte-size limit: FFmpeg stops writing once
-    // the output file reaches this size, regardless of VBR spikes.
+    // -fs can overshoot by one packet, so we shave 512KB to guarantee
+    // the final file stays strictly under the user's limit.
+    const safeBytes = maxChunkBytes - 512 * 1024;
     await ffmpeg.exec([
       '-ss',
       String(currentTime),
       '-i',
       inputPath,
       '-t',
-      String(estimatedChunkDuration),
+      String(duration - currentTime),
       '-fs',
-      String(maxChunkBytes),
+      String(safeBytes),
       '-c',
       'copy',
       '-avoid_negative_ts',
@@ -101,7 +102,35 @@ export async function splitVideo(
 
     const data = (await ffmpeg.readFile(chunkName)) as Uint8Array;
     const blob = new Blob([data.buffer as ArrayBuffer], { type: 'video/mp4' });
-    chunks.push({ name: chunkName, blob, size: blob.size });
+
+    // If a chunk still overshoots (shouldn't happen, but guard anyway),
+    // re-encode with a bitrate cap to force it under the limit.
+    if (blob.size > maxChunkBytes) {
+      const actualDuration = lastTime > 0 ? lastTime : estimatedChunkDuration;
+      const targetBitrate = Math.floor((maxChunkBytes * 0.95 * 8) / actualDuration);
+      await ffmpeg.exec([
+        '-ss',
+        String(currentTime),
+        '-i',
+        inputPath,
+        '-t',
+        String(actualDuration),
+        '-b:v',
+        String(targetBitrate),
+        '-maxrate',
+        String(targetBitrate),
+        '-bufsize',
+        String(targetBitrate),
+        '-fs',
+        String(maxChunkBytes),
+        chunkName,
+      ]);
+      const reData = (await ffmpeg.readFile(chunkName)) as Uint8Array;
+      const reBlob = new Blob([reData.buffer as ArrayBuffer], { type: 'video/mp4' });
+      chunks.push({ name: chunkName, blob: reBlob, size: reBlob.size });
+    } else {
+      chunks.push({ name: chunkName, blob, size: blob.size });
+    }
 
     // Clean up this chunk from virtual FS to save memory
     await ffmpeg.deleteFile(chunkName);
