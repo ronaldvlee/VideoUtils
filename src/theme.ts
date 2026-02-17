@@ -1,4 +1,6 @@
-const theme = {
+import { DefaultTheme } from 'styled-components';
+
+const theme: DefaultTheme = {
   bg: '#0f1117',
   surface: '#1a1d27',
   surfaceHover: '#222632',
