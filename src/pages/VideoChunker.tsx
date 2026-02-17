@@ -17,6 +17,7 @@ import {
   type ChunkProgress,
 } from '../tools/video-chunker';
 import type { FFmpeg } from '../tools/ffmpeg';
+import { downloadBlob } from '../utils/downloadBlob';
 
 const Settings = styled.div`
   margin-top: 1.5rem;
@@ -163,17 +164,6 @@ const ChunkDownload = styled.button`
     color: #fff;
   }
 `;
-
-function downloadBlob(blob: Blob, name: string) {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = name;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-}
 
 export default function VideoChunker() {
   const [file, setFile] = useState<File | null>(null);

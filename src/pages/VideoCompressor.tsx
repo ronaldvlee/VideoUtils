@@ -18,6 +18,7 @@ import {
   type CompressProgress,
 } from '../tools/video-compressor';
 import type { FFmpeg } from '../tools/ffmpeg';
+import { downloadBlob } from '../utils/downloadBlob';
 
 const SIZE_PRESETS = [
   { label: '8 MB', bytes: 8 * 1024 * 1024 },
@@ -139,17 +140,6 @@ const ResultSize = styled.span`
   color: ${({ theme }) => theme.textDim};
   flex-shrink: 0;
 `;
-
-function downloadBlob(blob: Blob, name: string) {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = name;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-}
 
 interface Result {
   blob: Blob;

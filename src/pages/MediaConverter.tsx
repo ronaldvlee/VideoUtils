@@ -18,6 +18,7 @@ import {
   type ConvertProgress,
 } from '../tools/media-converter';
 import type { FFmpeg } from '../tools/ffmpeg';
+import { downloadBlob } from '../utils/downloadBlob';
 
 const ALL_EXTENSIONS = [...VIDEO_FORMATS, ...AUDIO_FORMATS] as const;
 
@@ -128,17 +129,6 @@ const ResultSize = styled.span`
   color: ${({ theme }) => theme.textDim};
   flex-shrink: 0;
 `;
-
-function downloadBlob(blob: Blob, name: string) {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = name;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-}
 
 interface FormatOptions {
   isVideo: boolean;
